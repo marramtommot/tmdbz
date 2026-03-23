@@ -37,9 +37,13 @@ The detailed implementation map lives in [docs/tmdbz-implementation-roadmap.md](
 
 ## Install
 
-Add the package to `build.zig.zon` and import it as `tmdbz`.
+Fetch the package:
 
-Example dependency entry:
+```sh
+zig fetch --save git+https://github.com/marramtommot/tmdbz
+```
+
+This adds a `tmdbz` entry to `build.zig.zon`. It will look like:
 
 ```zig
 .dependencies = .{
@@ -50,7 +54,7 @@ Example dependency entry:
 },
 ```
 
-Then wire the module in `build.zig`:
+Then wire the module in `build.zig` and import it as `tmdbz`:
 
 ```zig
 const tmdbz_dep = b.dependency("tmdbz", .{
