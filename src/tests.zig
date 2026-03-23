@@ -24,6 +24,21 @@ fn parseTestJson(comptime T: type, json: []const u8) !std.json.Parsed(T) {
     });
 }
 
+fn loadIntegrationToken() ![]const u8 {
+    var env = try dotenv.load(std.testing.allocator, ".env");
+    defer env.deinit();
+
+    return env.get("TMDB_READ_ACCESS_TOKEN") orelse error.SkipZigTest;
+}
+
+fn initIntegrationClient(language: ?[]const u8) !Client {
+    const token = try loadIntegrationToken();
+    return Client.init(std.testing.allocator, .{
+        .token = token,
+        .language = language,
+    });
+}
+
 test "search url encodes query and optional year" {
     var client = initTestClient(.{ .language = "it-IT" });
     defer client.deinit();
@@ -1153,10 +1168,7 @@ test "person details parsing keeps primary fields" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.PersonDetails, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.PersonDetails, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(u64, 287), parsed.value.id);
@@ -1191,10 +1203,7 @@ test "person combined credits parsing keeps cast and crew" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.PersonCombinedCredits, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.PersonCombinedCredits, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(u64, 287), parsed.value.id);
@@ -1213,10 +1222,7 @@ test "genre list parsing keeps entries" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.GenreList, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.GenreList, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(usize, 2), parsed.value.genres.len);
@@ -1225,9 +1231,7 @@ test "genre list parsing keeps entries" {
 }
 
 test "grouped apis stay available on client" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-    });
+    var client = initTestClient(.{});
     defer client.deinit();
 
     _ = client.search();
@@ -1252,15 +1256,7 @@ test "grouped apis stay available on client" {
 }
 
 test "integration fetches tmdb details using grouped tv api" {
-    var env = try dotenv.load(std.testing.allocator, ".env");
-    defer env.deinit();
-
-    const token = env.get("TMDB_READ_ACCESS_TOKEN") orelse return error.SkipZigTest;
-
-    var client = Client.init(std.testing.allocator, .{
-        .token = token,
-        .language = "en-US",
-    });
+    var client = try initIntegrationClient("en-US");
     defer client.deinit();
 
     var parsed = try client.tv().details(226285);
@@ -1278,15 +1274,7 @@ test "integration fetches tmdb tv details with external_ids and season append" {
         @"season/3": ?types.TvSeasonDetails = null,
     };
 
-    var env = try dotenv.load(std.testing.allocator, ".env");
-    defer env.deinit();
-
-    const token = env.get("TMDB_READ_ACCESS_TOKEN") orelse return error.SkipZigTest;
-
-    var client = Client.init(std.testing.allocator, .{
-        .token = token,
-        .language = "en-US",
-    });
+    var client = try initIntegrationClient("en-US");
     defer client.deinit();
 
     var request = client.tv().detailsRequest(226285);
@@ -1306,15 +1294,7 @@ test "integration fetches tmdb tv details with external_ids and season append" {
 }
 
 test "integration fetches tmdb tv season details" {
-    var env = try dotenv.load(std.testing.allocator, ".env");
-    defer env.deinit();
-
-    const token = env.get("TMDB_READ_ACCESS_TOKEN") orelse return error.SkipZigTest;
-
-    var client = Client.init(std.testing.allocator, .{
-        .token = token,
-        .language = "en-US",
-    });
+    var client = try initIntegrationClient("en-US");
     defer client.deinit();
 
     var parsed = try client.tvSeasons().details(1399, 1);
@@ -1325,15 +1305,7 @@ test "integration fetches tmdb tv season details" {
 }
 
 test "integration fetches tmdb tv episode details" {
-    var env = try dotenv.load(std.testing.allocator, ".env");
-    defer env.deinit();
-
-    const token = env.get("TMDB_READ_ACCESS_TOKEN") orelse return error.SkipZigTest;
-
-    var client = Client.init(std.testing.allocator, .{
-        .token = token,
-        .language = "en-US",
-    });
+    var client = try initIntegrationClient("en-US");
     defer client.deinit();
 
     var parsed = try client.tvEpisodes().details(1399, 1, 1);
@@ -1344,14 +1316,7 @@ test "integration fetches tmdb tv episode details" {
 }
 
 test "integration fetches tmdb configuration" {
-    var env = try dotenv.load(std.testing.allocator, ".env");
-    defer env.deinit();
-
-    const token = env.get("TMDB_READ_ACCESS_TOKEN") orelse return error.SkipZigTest;
-
-    var client = Client.init(std.testing.allocator, .{
-        .token = token,
-    });
+    var client = try initIntegrationClient(null);
     defer client.deinit();
 
     var parsed = try client.configuration().details();
@@ -1369,14 +1334,7 @@ test "integration fetches tmdb configuration" {
 }
 
 test "integration fetches tmdb network details and images" {
-    var env = try dotenv.load(std.testing.allocator, ".env");
-    defer env.deinit();
-
-    const token = env.get("TMDB_READ_ACCESS_TOKEN") orelse return error.SkipZigTest;
-
-    var client = Client.init(std.testing.allocator, .{
-        .token = token,
-    });
+    var client = try initIntegrationClient(null);
     defer client.deinit();
 
     var details = try client.networks().details(49);
@@ -1397,15 +1355,7 @@ test "integration fetches tmdb review details" {
         } = &.{},
     };
 
-    var env = try dotenv.load(std.testing.allocator, ".env");
-    defer env.deinit();
-
-    const token = env.get("TMDB_READ_ACCESS_TOKEN") orelse return error.SkipZigTest;
-
-    var client = Client.init(std.testing.allocator, .{
-        .token = token,
-        .language = "en-US",
-    });
+    var client = try initIntegrationClient("en-US");
     defer client.deinit();
 
     const body = try client.testing().request("https://api.themoviedb.org/3/movie/550/reviews?language=en-US&page=1");
@@ -1424,14 +1374,7 @@ test "integration fetches tmdb review details" {
 }
 
 test "integration fetches tmdb movie and tv certifications" {
-    var env = try dotenv.load(std.testing.allocator, ".env");
-    defer env.deinit();
-
-    const token = env.get("TMDB_READ_ACCESS_TOKEN") orelse return error.SkipZigTest;
-
-    var client = Client.init(std.testing.allocator, .{
-        .token = token,
-    });
+    var client = try initIntegrationClient(null);
     defer client.deinit();
 
     var movie_certs = try client.certifications().movie();
@@ -1445,14 +1388,7 @@ test "integration fetches tmdb movie and tv certifications" {
 }
 
 test "integration fetches tmdb change lists" {
-    var env = try dotenv.load(std.testing.allocator, ".env");
-    defer env.deinit();
-
-    const token = env.get("TMDB_READ_ACCESS_TOKEN") orelse return error.SkipZigTest;
-
-    var client = Client.init(std.testing.allocator, .{
-        .token = token,
-    });
+    var client = try initIntegrationClient(null);
     defer client.deinit();
 
     var movie_changes = try client.changes().movie(.{ .page = 1 });
@@ -1477,15 +1413,7 @@ test "integration fetches tmdb person details with append" {
         images: ?types.PersonImages = null,
     };
 
-    var env = try dotenv.load(std.testing.allocator, ".env");
-    defer env.deinit();
-
-    const token = env.get("TMDB_READ_ACCESS_TOKEN") orelse return error.SkipZigTest;
-
-    var client = Client.init(std.testing.allocator, .{
-        .token = token,
-        .language = "en-US",
-    });
+    var client = try initIntegrationClient("en-US");
     defer client.deinit();
 
     var request = client.people().detailsRequest(287);
@@ -1503,15 +1431,7 @@ test "integration fetches tmdb person details with append" {
 }
 
 test "integration fetches tmdb person credits and changes" {
-    var env = try dotenv.load(std.testing.allocator, ".env");
-    defer env.deinit();
-
-    const token = env.get("TMDB_READ_ACCESS_TOKEN") orelse return error.SkipZigTest;
-
-    var client = Client.init(std.testing.allocator, .{
-        .token = token,
-        .language = "en-US",
-    });
+    var client = try initIntegrationClient("en-US");
     defer client.deinit();
 
     var combined = try client.people().combinedCredits(287);
@@ -1533,15 +1453,7 @@ test "integration fetches tmdb person credits and changes" {
 }
 
 test "integration fetches tmdb movie genres" {
-    var env = try dotenv.load(std.testing.allocator, ".env");
-    defer env.deinit();
-
-    const token = env.get("TMDB_READ_ACCESS_TOKEN") orelse return error.SkipZigTest;
-
-    var client = Client.init(std.testing.allocator, .{
-        .token = token,
-        .language = "en-US",
-    });
+    var client = try initIntegrationClient("en-US");
     defer client.deinit();
 
     var parsed = try client.genres().movie();
@@ -1551,15 +1463,7 @@ test "integration fetches tmdb movie genres" {
 }
 
 test "integration fetches tmdb tv genres" {
-    var env = try dotenv.load(std.testing.allocator, ".env");
-    defer env.deinit();
-
-    const token = env.get("TMDB_READ_ACCESS_TOKEN") orelse return error.SkipZigTest;
-
-    var client = Client.init(std.testing.allocator, .{
-        .token = token,
-        .language = "en-US",
-    });
+    var client = try initIntegrationClient("en-US");
     defer client.deinit();
 
     var parsed = try client.genres().tv();
