@@ -457,8 +457,27 @@ test "details request supports chain append builder" {
     var request = client.movie().detailsRequest(11);
     defer request.deinit();
 
-    _ = try request.appendToResponse("images");
-    _ = try request.appendToResponse("videos");
+    _ = try request.appendRaw("images");
+    _ = try request.appendRaw("videos");
+
+    const url = try request.build();
+    defer std.testing.allocator.free(url);
+
+    try std.testing.expectEqualStrings(
+        "https://api.themoviedb.org/3/movie/11?append_to_response=images,videos&include_image_language=en-US,null&language=it-IT",
+        url,
+    );
+}
+
+test "details request supports typed append enums" {
+    var client = initTestClient(.{ .language = "it-IT" });
+    defer client.deinit();
+
+    var request = client.movie().detailsRequest(11);
+    defer request.deinit();
+
+    _ = try request.append(.images);
+    _ = try request.append(.videos);
 
     const url = try request.build();
     defer std.testing.allocator.free(url);
@@ -477,7 +496,7 @@ test "details request supports append array" {
     defer request.deinit();
 
     const values = [_][]const u8{ "images", "videos" };
-    _ = try request.appendMany(&values);
+    _ = try request.appendManyRaw(&values);
     _ = request.setIncludeImageLanguage(null);
 
     const url = try request.build();
@@ -489,6 +508,24 @@ test "details request supports append array" {
     );
 }
 
+test "person details request supports typed append enums" {
+    var client = initTestClient(.{ .language = "en-US" });
+    defer client.deinit();
+
+    var request = client.people().detailsRequest(287);
+    defer request.deinit();
+
+    _ = try request.appendMany(&.{ .external_ids, .images });
+
+    const url = try request.build();
+    defer std.testing.allocator.free(url);
+
+    try std.testing.expectEqualStrings(
+        "https://api.themoviedb.org/3/person/287?append_to_response=external_ids,images&language=en-US",
+        url,
+    );
+}
+
 test "tv details request supports arbitrary appended namespace paths" {
     var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
@@ -496,8 +533,8 @@ test "tv details request supports arbitrary appended namespace paths" {
     var request = client.tv().detailsRequest(226285);
     defer request.deinit();
 
-    _ = try request.appendToResponse("external_ids");
-    _ = try request.appendToResponse("season/3");
+    _ = try request.appendRaw("external_ids");
+    _ = try request.appendRaw("season/3");
     _ = request.setIncludeImageLanguage(null);
 
     const url = try request.build();
@@ -1280,8 +1317,8 @@ test "integration fetches tmdb tv details with external_ids and season append" {
     var request = client.tv().detailsRequest(226285);
     defer request.deinit();
 
-    _ = try request.appendToResponse("external_ids");
-    _ = try request.appendToResponse("season/3");
+    _ = try request.appendRaw("external_ids");
+    _ = try request.appendRaw("season/3");
     _ = request.setIncludeImageLanguage(null);
 
     var parsed = try request.sendAs(AppendedTvDetails);
@@ -1419,7 +1456,7 @@ test "integration fetches tmdb person details with append" {
     var request = client.people().detailsRequest(287);
     defer request.deinit();
 
-    _ = try request.appendMany(&.{ "external_ids", "images" });
+    _ = try request.appendManyRaw(&.{ "external_ids", "images" });
 
     var parsed = try request.sendAs(AppendedPersonDetails);
     defer parsed.deinit();

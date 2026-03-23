@@ -165,7 +165,7 @@ const StaticBodyCache = struct {
     }
 };
 
-fn DetailRequestImpl(comptime T: type) type {
+fn DetailRequestImpl(comptime T: type, comptime AppendEnum: type) type {
     return struct {
         allocator: std.mem.Allocator,
         client: *Client,
@@ -178,13 +178,25 @@ fn DetailRequestImpl(comptime T: type) type {
             self.append_values.deinit(self.allocator);
         }
 
-        pub fn appendToResponse(self: *@This(), value: []const u8) !*@This() {
+        pub fn appendRaw(self: *@This(), value: []const u8) !*@This() {
             try self.append_values.append(self.allocator, value);
             return self;
         }
 
-        pub fn appendMany(self: *@This(), values: []const []const u8) !*@This() {
+        pub fn append(self: *@This(), value: AppendEnum) !*@This() {
+            try self.append_values.append(self.allocator, @tagName(value));
+            return self;
+        }
+
+        pub fn appendManyRaw(self: *@This(), values: []const []const u8) !*@This() {
             try self.append_values.appendSlice(self.allocator, values);
+            return self;
+        }
+
+        pub fn appendMany(self: *@This(), values: []const AppendEnum) !*@This() {
+            for (values) |value| {
+                try self.append_values.append(self.allocator, @tagName(value));
+            }
             return self;
         }
 
@@ -233,8 +245,8 @@ fn DetailRequestImpl(comptime T: type) type {
     };
 }
 
-pub const MovieDetailsRequest = DetailRequestImpl(types.MovieDetails);
-pub const TvDetailsRequest = DetailRequestImpl(types.TvDetails);
+pub const MovieDetailsRequest = DetailRequestImpl(types.MovieDetails, types.MovieAppend);
+pub const TvDetailsRequest = DetailRequestImpl(types.TvDetails, types.TvAppend);
 pub const DetailsRequest = MovieDetailsRequest;
 
 const PersonRequestImpl = struct {
@@ -247,13 +259,25 @@ const PersonRequestImpl = struct {
         self.append_values.deinit(self.allocator);
     }
 
-    pub fn appendToResponse(self: *PersonRequestImpl, value: []const u8) !*PersonRequestImpl {
+    pub fn appendRaw(self: *PersonRequestImpl, value: []const u8) !*PersonRequestImpl {
         try self.append_values.append(self.allocator, value);
         return self;
     }
 
-    pub fn appendMany(self: *PersonRequestImpl, values: []const []const u8) !*PersonRequestImpl {
+    pub fn append(self: *PersonRequestImpl, value: types.PersonAppend) !*PersonRequestImpl {
+        try self.append_values.append(self.allocator, @tagName(value));
+        return self;
+    }
+
+    pub fn appendManyRaw(self: *PersonRequestImpl, values: []const []const u8) !*PersonRequestImpl {
         try self.append_values.appendSlice(self.allocator, values);
+        return self;
+    }
+
+    pub fn appendMany(self: *PersonRequestImpl, values: []const types.PersonAppend) !*PersonRequestImpl {
+        for (values) |value| {
+            try self.append_values.append(self.allocator, @tagName(value));
+        }
         return self;
     }
 
@@ -298,13 +322,25 @@ const TvSeasonRequestImpl = struct {
         self.append_values.deinit(self.allocator);
     }
 
-    pub fn appendToResponse(self: *TvSeasonRequestImpl, value: []const u8) !*TvSeasonRequestImpl {
+    pub fn appendRaw(self: *TvSeasonRequestImpl, value: []const u8) !*TvSeasonRequestImpl {
         try self.append_values.append(self.allocator, value);
         return self;
     }
 
-    pub fn appendMany(self: *TvSeasonRequestImpl, values: []const []const u8) !*TvSeasonRequestImpl {
+    pub fn append(self: *TvSeasonRequestImpl, value: types.TvSeasonAppend) !*TvSeasonRequestImpl {
+        try self.append_values.append(self.allocator, @tagName(value));
+        return self;
+    }
+
+    pub fn appendManyRaw(self: *TvSeasonRequestImpl, values: []const []const u8) !*TvSeasonRequestImpl {
         try self.append_values.appendSlice(self.allocator, values);
+        return self;
+    }
+
+    pub fn appendMany(self: *TvSeasonRequestImpl, values: []const types.TvSeasonAppend) !*TvSeasonRequestImpl {
+        for (values) |value| {
+            try self.append_values.append(self.allocator, @tagName(value));
+        }
         return self;
     }
 
@@ -358,13 +394,25 @@ const TvEpisodeRequestImpl = struct {
         self.append_values.deinit(self.allocator);
     }
 
-    pub fn appendToResponse(self: *TvEpisodeRequestImpl, value: []const u8) !*TvEpisodeRequestImpl {
+    pub fn appendRaw(self: *TvEpisodeRequestImpl, value: []const u8) !*TvEpisodeRequestImpl {
         try self.append_values.append(self.allocator, value);
         return self;
     }
 
-    pub fn appendMany(self: *TvEpisodeRequestImpl, values: []const []const u8) !*TvEpisodeRequestImpl {
+    pub fn append(self: *TvEpisodeRequestImpl, value: types.TvEpisodeAppend) !*TvEpisodeRequestImpl {
+        try self.append_values.append(self.allocator, @tagName(value));
+        return self;
+    }
+
+    pub fn appendManyRaw(self: *TvEpisodeRequestImpl, values: []const []const u8) !*TvEpisodeRequestImpl {
         try self.append_values.appendSlice(self.allocator, values);
+        return self;
+    }
+
+    pub fn appendMany(self: *TvEpisodeRequestImpl, values: []const types.TvEpisodeAppend) !*TvEpisodeRequestImpl {
+        for (values) |value| {
+            try self.append_values.append(self.allocator, @tagName(value));
+        }
         return self;
     }
 
@@ -1141,7 +1189,7 @@ pub const Client = struct {
     ) !@TypeOf(details_request.send()) {
         var mutable_request = details_request;
         defer mutable_request.deinit();
-        _ = try mutable_request.appendMany(append_values);
+        _ = try mutable_request.appendManyRaw(append_values);
         return try mutable_request.send();
     }
 

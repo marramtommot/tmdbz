@@ -572,6 +572,46 @@ pub const ReviewSummary = struct {
 
 pub const ReviewsResponse = PagedResponse(ReviewSummary);
 
+pub const MovieAppend = enum {
+    credits,
+    external_ids,
+    images,
+    recommendations,
+    reviews,
+    similar,
+    videos,
+};
+
+pub const TvAppend = enum {
+    credits,
+    external_ids,
+    images,
+    recommendations,
+    reviews,
+    similar,
+    videos,
+};
+
+pub const PersonAppend = enum {
+    combined_credits,
+    external_ids,
+    images,
+    movie_credits,
+    tagged_images,
+    translations,
+    tv_credits,
+};
+
+pub const TvSeasonAppend = enum {
+    images,
+    videos,
+};
+
+pub const TvEpisodeAppend = enum {
+    images,
+    videos,
+};
+
 pub const ChangesQuery = struct {
     start_date: ?[]const u8 = null,
     end_date: ?[]const u8 = null,
