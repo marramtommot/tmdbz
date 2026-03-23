@@ -66,6 +66,10 @@ pub fn Api(comptime ClientType: type) type {
             return self.client.fetchMovieSubresource(types.VideosResponse, movie_id, "videos");
         }
 
+        pub fn reviews(self: @This(), movie_id: u64, page: ?u32) !std.json.Parsed(types.ReviewsResponse) {
+            return self.client.fetchMovieReviews(movie_id, page);
+        }
+
         pub fn similar(self: @This(), movie_id: u64, page: ?u32) !std.json.Parsed(types.SearchResponse) {
             return self.client.fetchMovieSubresourcePaged(types.SearchResponse, movie_id, "similar", page);
         }

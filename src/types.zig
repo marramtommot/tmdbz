@@ -560,6 +560,18 @@ pub const ReviewDetails = struct {
     url: ?[]const u8 = null,
 };
 
+pub const ReviewSummary = struct {
+    author: ?[]const u8 = null,
+    author_details: ?ReviewAuthorDetails = null,
+    content: ?[]const u8 = null,
+    created_at: ?[]const u8 = null,
+    id: ?[]const u8 = null,
+    updated_at: ?[]const u8 = null,
+    url: ?[]const u8 = null,
+};
+
+pub const ReviewsResponse = PagedResponse(ReviewSummary);
+
 pub const ChangesQuery = struct {
     start_date: ?[]const u8 = null,
     end_date: ?[]const u8 = null,

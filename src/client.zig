@@ -1,26 +1,8 @@
 const std = @import("std");
 
-const certifications_api = @import("certifications.zig");
-const changes_api = @import("changes.zig");
-const collections_api = @import("collections.zig");
-const companies_api = @import("companies.zig");
-const configuration_api = @import("configuration.zig");
-const discover_api = @import("discover.zig");
 const dotenv = @import("dotenv.zig");
-const find_api = @import("find.zig");
-const genre_api = @import("genre.zig");
-const keywords_api = @import("keywords.zig");
-const movie_api = @import("movie.zig");
-const networks_api = @import("networks.zig");
-const people_api = @import("people.zig");
-const reviews_api = @import("reviews.zig");
-const search_api = @import("search.zig");
-const trending_api = @import("trending.zig");
-const tv_api = @import("tv.zig");
-const tv_episodes_api = @import("tv_episodes.zig");
-const tv_seasons_api = @import("tv_seasons.zig");
+const groups = @import("groups.zig");
 const types = @import("types.zig");
-const watch_providers_api = @import("watch_providers.zig");
 
 pub const Config = struct {
     token: []const u8,
@@ -28,6 +10,122 @@ pub const Config = struct {
     series_search_base_url: []const u8 = "https://api.themoviedb.org/3/search/tv?",
     language: ?[]const u8 = null,
     include_image_language: ?[]const u8 = "en-US,null",
+};
+
+pub const Testing = struct {
+    client: *Client,
+
+    pub fn buildSearchUrl(self: @This(), media_type: types.MediaType, query: []const u8, year: ?u32) ![]u8 {
+        return self.client.buildSearchUrl(media_type, query, year);
+    }
+
+    pub fn buildSearchMovieUrl(self: @This(), query: []const u8, options: types.SearchMovieQuery) ![]u8 {
+        return self.client.buildSearchMovieUrl(query, options);
+    }
+
+    pub fn buildSearchTvUrl(self: @This(), query: []const u8, options: types.SearchTvQuery) ![]u8 {
+        return self.client.buildSearchTvUrl(query, options);
+    }
+
+    pub fn buildSimpleSearchUrl(self: @This(), kind: []const u8, query: []const u8, options: types.SearchQuery) ![]u8 {
+        return self.client.buildSimpleSearchUrl(kind, query, options);
+    }
+
+    pub fn buildLanguageAwareUrl(self: @This(), base_url: []const u8) ![]u8 {
+        return self.client.buildLanguageAwareUrl(base_url);
+    }
+
+    pub fn buildGenreMoviesUrl(self: @This(), genre_id: u64, options: types.SearchQuery) ![]u8 {
+        return self.client.buildGenreMoviesUrl(genre_id, options);
+    }
+
+    pub fn buildDiscoverMovieUrl(self: @This(), query: types.DiscoverMovieQuery) ![]u8 {
+        return self.client.buildDiscoverMovieUrl(query);
+    }
+
+    pub fn buildDiscoverTvUrl(self: @This(), query: types.DiscoverTvQuery) ![]u8 {
+        return self.client.buildDiscoverTvUrl(query);
+    }
+
+    pub fn buildFindUrl(self: @This(), external_id: []const u8, external_source: types.FindExternalSource) ![]u8 {
+        return self.client.buildFindUrl(external_id, external_source);
+    }
+
+    pub fn buildTrendingUrl(self: @This(), media_kind: []const u8, time_window: types.TrendingTimeWindow) ![]u8 {
+        return self.client.buildTrendingUrl(media_kind, time_window);
+    }
+
+    pub fn buildMovieListUrl(self: @This(), list_kind: []const u8, query: types.MovieListQuery) ![]u8 {
+        return self.client.buildMovieListUrl(list_kind, query);
+    }
+
+    pub fn buildTvListUrl(self: @This(), list_kind: []const u8, query: types.TvListQuery) ![]u8 {
+        return self.client.buildTvListUrl(list_kind, query);
+    }
+
+    pub fn buildMovieSubresourceUrl(self: @This(), movie_id: u64, suffix: []const u8, page: ?u32, include_image_language: ?[]const u8) ![]u8 {
+        return self.client.buildMovieSubresourceUrl(movie_id, suffix, page, include_image_language);
+    }
+
+    pub fn buildTvSubresourceUrl(self: @This(), series_id: u64, suffix: []const u8, page: ?u32, include_image_language: ?[]const u8, include_video_language: ?[]const u8) ![]u8 {
+        return self.client.buildTvSubresourceUrl(series_id, suffix, page, include_image_language, include_video_language);
+    }
+
+    pub fn buildWatchProvidersUrl(self: @This(), media_kind: []const u8, watch_region: ?[]const u8) ![]u8 {
+        return self.client.buildWatchProvidersUrl(media_kind, watch_region);
+    }
+
+    pub fn buildWatchProviderRegionsUrl(self: @This()) ![]u8 {
+        return self.client.buildWatchProviderRegionsUrl();
+    }
+
+    pub fn buildPeoplePopularUrl(self: @This(), options: types.SearchQuery) ![]u8 {
+        return self.client.buildPeoplePopularUrl(options);
+    }
+
+    pub fn buildCollectionUrl(self: @This(), collection_id: u64, suffix: ?[]const u8, include_image_language: ?[]const u8) ![]u8 {
+        return self.client.buildCollectionUrl(collection_id, suffix, include_image_language);
+    }
+
+    pub fn buildKeywordUrl(self: @This(), keyword_id: u64, suffix: ?[]const u8, options: types.SearchQuery) ![]u8 {
+        return self.client.buildKeywordUrl(keyword_id, suffix, options);
+    }
+
+    pub fn buildChangesUrl(self: @This(), scope: []const u8, query: types.ChangesQuery) ![]u8 {
+        return self.client.buildChangesUrl(scope, query);
+    }
+
+    pub fn buildPersonDetailsUrl(self: @This(), person_id: u64, append_values: []const []const u8) ![]u8 {
+        return self.client.buildPersonDetailsUrl(person_id, append_values);
+    }
+
+    pub fn buildDetailsUrl(self: @This(), media_type: types.MediaType, id: u64, append_values: []const []const u8, include_image_language: ?[]const u8) ![]u8 {
+        return self.client.buildDetailsUrl(media_type, id, append_values, include_image_language);
+    }
+
+    pub fn buildTvSeasonDetailsUrl(self: @This(), series_id: u64, season_number: u32, append_values: []const []const u8, include_image_language: ?[]const u8) ![]u8 {
+        return self.client.buildTvSeasonDetailsUrl(series_id, season_number, append_values, include_image_language);
+    }
+
+    pub fn buildTvEpisodeDetailsUrl(self: @This(), series_id: u64, season_number: u32, episode_number: u32, append_values: []const []const u8, include_image_language: ?[]const u8) ![]u8 {
+        return self.client.buildTvEpisodeDetailsUrl(series_id, season_number, episode_number, append_values, include_image_language);
+    }
+
+    pub fn request(self: @This(), url: []const u8) ![]u8 {
+        return self.client.request(url);
+    }
+
+    pub fn parseJson(self: @This(), comptime T: type, body: []const u8) !std.json.Parsed(T) {
+        return self.client.parseJson(T, body);
+    }
+
+    pub fn applyGenreNames(target: []types.Genre, canonical: []const types.Genre) void {
+        Client.applyGenreNames(target, canonical);
+    }
+
+    pub fn firstFindResultId(response: types.FindResponse, kind: types.FindResultKind) ?u64 {
+        return Client.firstFindResultId(response, kind);
+    }
 };
 
 const StaticBodyCache = struct {
@@ -317,84 +415,88 @@ pub const Client = struct {
         self.http_client.deinit();
     }
 
+    pub fn testing(self: *Client) Testing {
+        return .{ .client = self };
+    }
+
     fn api(self: *Client, comptime ApiType: type) ApiType {
         return .{ .client = self };
     }
 
-    pub fn search(self: *Client) search_api.Api(Client) {
-        return self.api(search_api.Api(Client));
+    pub fn search(self: *Client) groups.Search.Api(Client) {
+        return self.api(groups.Search.Api(Client));
     }
 
-    pub fn discover(self: *Client) discover_api.Api(Client) {
-        return self.api(discover_api.Api(Client));
+    pub fn discover(self: *Client) groups.Discover.Api(Client) {
+        return self.api(groups.Discover.Api(Client));
     }
 
-    pub fn find(self: *Client) find_api.Api(Client) {
-        return self.api(find_api.Api(Client));
+    pub fn find(self: *Client) groups.Find.Api(Client) {
+        return self.api(groups.Find.Api(Client));
     }
 
-    pub fn trending(self: *Client) trending_api.Api(Client) {
-        return self.api(trending_api.Api(Client));
+    pub fn trending(self: *Client) groups.Trending.Api(Client) {
+        return self.api(groups.Trending.Api(Client));
     }
 
-    pub fn watchProviders(self: *Client) watch_providers_api.Api(Client) {
-        return self.api(watch_providers_api.Api(Client));
+    pub fn watchProviders(self: *Client) groups.WatchProviders.Api(Client) {
+        return self.api(groups.WatchProviders.Api(Client));
     }
 
-    pub fn collections(self: *Client) collections_api.Api(Client) {
-        return self.api(collections_api.Api(Client));
+    pub fn collections(self: *Client) groups.Collections.Api(Client) {
+        return self.api(groups.Collections.Api(Client));
     }
 
-    pub fn companies(self: *Client) companies_api.Api(Client) {
-        return self.api(companies_api.Api(Client));
+    pub fn companies(self: *Client) groups.Companies.Api(Client) {
+        return self.api(groups.Companies.Api(Client));
     }
 
-    pub fn genres(self: *Client) genre_api.Api(Client) {
-        return self.api(genre_api.Api(Client));
+    pub fn genres(self: *Client) groups.Genres.Api(Client) {
+        return self.api(groups.Genres.Api(Client));
     }
 
-    pub fn keywords(self: *Client) keywords_api.Api(Client) {
-        return self.api(keywords_api.Api(Client));
+    pub fn keywords(self: *Client) groups.Keywords.Api(Client) {
+        return self.api(groups.Keywords.Api(Client));
     }
 
-    pub fn movie(self: *Client) movie_api.Api(Client) {
-        return self.api(movie_api.Api(Client));
+    pub fn movie(self: *Client) groups.Movie.Api(Client) {
+        return self.api(groups.Movie.Api(Client));
     }
 
-    pub fn tv(self: *Client) tv_api.Api(Client) {
-        return self.api(tv_api.Api(Client));
+    pub fn tv(self: *Client) groups.Tv.Api(Client) {
+        return self.api(groups.Tv.Api(Client));
     }
 
-    pub fn configuration(self: *Client) configuration_api.Api(Client) {
-        return self.api(configuration_api.Api(Client));
+    pub fn configuration(self: *Client) groups.Configuration.Api(Client) {
+        return self.api(groups.Configuration.Api(Client));
     }
 
-    pub fn networks(self: *Client) networks_api.Api(Client) {
-        return self.api(networks_api.Api(Client));
+    pub fn networks(self: *Client) groups.Networks.Api(Client) {
+        return self.api(groups.Networks.Api(Client));
     }
 
-    pub fn reviews(self: *Client) reviews_api.Api(Client) {
-        return self.api(reviews_api.Api(Client));
+    pub fn reviews(self: *Client) groups.Reviews.Api(Client) {
+        return self.api(groups.Reviews.Api(Client));
     }
 
-    pub fn certifications(self: *Client) certifications_api.Api(Client) {
-        return self.api(certifications_api.Api(Client));
+    pub fn certifications(self: *Client) groups.Certifications.Api(Client) {
+        return self.api(groups.Certifications.Api(Client));
     }
 
-    pub fn changes(self: *Client) changes_api.Api(Client) {
-        return self.api(changes_api.Api(Client));
+    pub fn changes(self: *Client) groups.Changes.Api(Client) {
+        return self.api(groups.Changes.Api(Client));
     }
 
-    pub fn people(self: *Client) people_api.Api(Client) {
-        return self.api(people_api.Api(Client));
+    pub fn people(self: *Client) groups.People.Api(Client) {
+        return self.api(groups.People.Api(Client));
     }
 
-    pub fn tvSeasons(self: *Client) tv_seasons_api.Api(Client) {
-        return self.api(tv_seasons_api.Api(Client));
+    pub fn tvSeasons(self: *Client) groups.TvSeasons.Api(Client) {
+        return self.api(groups.TvSeasons.Api(Client));
     }
 
-    pub fn tvEpisodes(self: *Client) tv_episodes_api.Api(Client) {
-        return self.api(tv_episodes_api.Api(Client));
+    pub fn tvEpisodes(self: *Client) groups.TvEpisodes.Api(Client) {
+        return self.api(groups.TvEpisodes.Api(Client));
     }
 
     pub fn searchId(
@@ -623,6 +725,10 @@ pub const Client = struct {
         return try self.fetchJsonUrl(types.MediaImages, url);
     }
 
+    pub fn fetchMovieReviews(self: *Client, movie_id: u64, page: ?u32) !std.json.Parsed(types.ReviewsResponse) {
+        return try self.fetchMovieSubresourcePaged(types.ReviewsResponse, movie_id, "reviews", page);
+    }
+
     pub fn fetchTvSubresource(
         self: *Client,
         comptime T: type,
@@ -654,6 +760,10 @@ pub const Client = struct {
         return try self.fetchJsonUrl(types.VideosResponse, url);
     }
 
+    pub fn fetchTvReviews(self: *Client, series_id: u64, page: ?u32) !std.json.Parsed(types.ReviewsResponse) {
+        return try self.fetchTvSubresourcePaged(types.ReviewsResponse, series_id, "reviews", page);
+    }
+
     pub fn fetchWatchProviders(
         self: *Client,
         media_kind: []const u8,
@@ -676,23 +786,19 @@ pub const Client = struct {
     }
 
     pub fn fetchConfigurationJobs(self: *Client) !std.json.Parsed(types.ConfigurationJobs) {
-        const url = try std.fmt.allocPrint(self.allocator, "https://api.themoviedb.org/3/configuration/jobs", .{});
-        return try self.fetchJsonUrl(types.ConfigurationJobs, url);
+        return try self.fetchConfigurationJson(types.ConfigurationJobs, "jobs");
     }
 
     pub fn fetchConfigurationLanguages(self: *Client) !std.json.Parsed(types.ConfigurationLanguages) {
-        const url = try std.fmt.allocPrint(self.allocator, "https://api.themoviedb.org/3/configuration/languages", .{});
-        return try self.fetchJsonUrl(types.ConfigurationLanguages, url);
+        return try self.fetchConfigurationJson(types.ConfigurationLanguages, "languages");
     }
 
     pub fn fetchConfigurationPrimaryTranslations(self: *Client) !std.json.Parsed(types.ConfigurationPrimaryTranslations) {
-        const url = try std.fmt.allocPrint(self.allocator, "https://api.themoviedb.org/3/configuration/primary_translations", .{});
-        return try self.fetchJsonUrl(types.ConfigurationPrimaryTranslations, url);
+        return try self.fetchConfigurationJson(types.ConfigurationPrimaryTranslations, "primary_translations");
     }
 
     pub fn fetchConfigurationTimezones(self: *Client) !std.json.Parsed(types.ConfigurationTimezones) {
-        const url = try std.fmt.allocPrint(self.allocator, "https://api.themoviedb.org/3/configuration/timezones", .{});
-        return try self.fetchJsonUrl(types.ConfigurationTimezones, url);
+        return try self.fetchConfigurationJson(types.ConfigurationTimezones, "timezones");
     }
 
     pub fn fetchPopularPeople(self: *Client, options: types.SearchQuery) !std.json.Parsed(types.SearchResponse) {
@@ -701,38 +807,31 @@ pub const Client = struct {
     }
 
     pub fn fetchCollectionDetails(self: *Client, collection_id: u64) !std.json.Parsed(types.CollectionDetails) {
-        const url = try self.buildCollectionUrl(collection_id, null, null);
-        return try self.fetchJsonUrl(types.CollectionDetails, url);
+        return try self.fetchCollectionJson(types.CollectionDetails, collection_id, null, null);
     }
 
     pub fn fetchCollectionImages(self: *Client, collection_id: u64) !std.json.Parsed(types.MediaImages) {
-        const url = try self.buildCollectionUrl(collection_id, "images", self.config.include_image_language);
-        return try self.fetchJsonUrl(types.MediaImages, url);
+        return try self.fetchCollectionJson(types.MediaImages, collection_id, "images", self.config.include_image_language);
     }
 
     pub fn fetchCollectionTranslations(self: *Client, collection_id: u64) !std.json.Parsed(types.CollectionTranslations) {
-        const url = try self.buildCollectionUrl(collection_id, "translations", null);
-        return try self.fetchJsonUrl(types.CollectionTranslations, url);
+        return try self.fetchCollectionJson(types.CollectionTranslations, collection_id, "translations", null);
     }
 
     pub fn fetchCompanyDetails(self: *Client, company_id: u64) !std.json.Parsed(types.CompanyDetails) {
-        const url = try self.buildCompanyUrl(company_id, null);
-        return try self.fetchJsonUrl(types.CompanyDetails, url);
+        return try self.fetchCompanyJson(types.CompanyDetails, company_id, null);
     }
 
     pub fn fetchCompanyAlternativeNames(self: *Client, company_id: u64) !std.json.Parsed(types.CompanyAlternativeNames) {
-        const url = try self.buildCompanyUrl(company_id, "alternative_names");
-        return try self.fetchJsonUrl(types.CompanyAlternativeNames, url);
+        return try self.fetchCompanyJson(types.CompanyAlternativeNames, company_id, "alternative_names");
     }
 
     pub fn fetchCompanyImages(self: *Client, company_id: u64) !std.json.Parsed(types.CompanyImages) {
-        const url = try self.buildCompanyUrl(company_id, "images");
-        return try self.fetchJsonUrl(types.CompanyImages, url);
+        return try self.fetchCompanyJson(types.CompanyImages, company_id, "images");
     }
 
     pub fn fetchKeywordDetails(self: *Client, keyword_id: u64) !std.json.Parsed(types.KeywordDetails) {
-        const url = try self.buildKeywordUrl(keyword_id, null, .{});
-        return try self.fetchJsonUrl(types.KeywordDetails, url);
+        return try self.fetchKeywordJson(types.KeywordDetails, keyword_id, null, .{});
     }
 
     pub fn fetchKeywordMovies(
@@ -740,8 +839,7 @@ pub const Client = struct {
         keyword_id: u64,
         options: types.SearchQuery,
     ) !std.json.Parsed(types.KeywordMoviesResponse) {
-        const url = try self.buildKeywordUrl(keyword_id, "movies", options);
-        return try self.fetchJsonUrl(types.KeywordMoviesResponse, url);
+        return try self.fetchKeywordJson(types.KeywordMoviesResponse, keyword_id, "movies", options);
     }
 
     pub fn findMovieDetails(
@@ -949,17 +1047,13 @@ pub const Client = struct {
     pub fn fetchMovieGenres(self: *Client) !std.json.Parsed(types.GenreList) {
         const url = try self.buildLanguageAwareUrl("https://api.themoviedb.org/3/genre/movie/list");
         defer self.allocator.free(url);
-
-        const body = try self.cachedBody(&self.static_cache.movie_genres, url);
-        return try self.parseJson(types.GenreList, body);
+        return try self.fetchCachedJson(types.GenreList, &self.static_cache.movie_genres, url);
     }
 
     pub fn fetchTvGenres(self: *Client) !std.json.Parsed(types.GenreList) {
         const url = try self.buildLanguageAwareUrl("https://api.themoviedb.org/3/genre/tv/list");
         defer self.allocator.free(url);
-
-        const body = try self.cachedBody(&self.static_cache.tv_genres, url);
-        return try self.parseJson(types.GenreList, body);
+        return try self.fetchCachedJson(types.GenreList, &self.static_cache.tv_genres, url);
     }
 
     pub fn fetchGenreMovies(
@@ -1047,6 +1141,38 @@ pub const Client = struct {
         return try self.parseJson(T, body);
     }
 
+    fn fetchCollectionJson(
+        self: *Client,
+        comptime T: type,
+        collection_id: u64,
+        suffix: ?[]const u8,
+        include_image_language: ?[]const u8,
+    ) !std.json.Parsed(T) {
+        const url = try self.buildCollectionUrl(collection_id, suffix, include_image_language);
+        return try self.fetchJsonUrl(T, url);
+    }
+
+    fn fetchCompanyJson(
+        self: *Client,
+        comptime T: type,
+        company_id: u64,
+        suffix: ?[]const u8,
+    ) !std.json.Parsed(T) {
+        const url = try self.buildCompanyUrl(company_id, suffix);
+        return try self.fetchJsonUrl(T, url);
+    }
+
+    fn fetchKeywordJson(
+        self: *Client,
+        comptime T: type,
+        keyword_id: u64,
+        suffix: ?[]const u8,
+        options: types.SearchQuery,
+    ) !std.json.Parsed(T) {
+        const url = try self.buildKeywordUrl(keyword_id, suffix, options);
+        return try self.fetchJsonUrl(T, url);
+    }
+
     fn fetchCachedJson(self: *Client, comptime T: type, slot: *?[]u8, url: []const u8) !std.json.Parsed(T) {
         const body = try self.cachedBody(slot, url);
         return try self.parseJson(T, body);
@@ -1054,6 +1180,15 @@ pub const Client = struct {
 
     fn fetchLanguageAwareJson(self: *Client, comptime T: type, base_url: []const u8) !std.json.Parsed(T) {
         const url = try self.buildLanguageAwareUrl(base_url);
+        return try self.fetchJsonUrl(T, url);
+    }
+
+    fn fetchConfigurationJson(self: *Client, comptime T: type, suffix: []const u8) !std.json.Parsed(T) {
+        const url = try std.fmt.allocPrint(
+            self.allocator,
+            "https://api.themoviedb.org/3/configuration/{s}",
+            .{suffix},
+        );
         return try self.fetchJsonUrl(T, url);
     }
 
@@ -1459,10 +1594,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        if (suffix) |value|
-            try writer.writer.print("https://api.themoviedb.org/3/collection/{d}/{s}", .{ collection_id, value })
-        else
-            try writer.writer.print("https://api.themoviedb.org/3/collection/{d}", .{collection_id});
+        try self.writeResourcePath(&writer.writer, "collection", collection_id, suffix);
         try writeOptionalString(&writer.writer, &has_query, "include_image_language", include_image_language);
         try self.writeOptionalLanguage(&writer.writer, &has_query);
 
@@ -1474,10 +1606,7 @@ pub const Client = struct {
         var writer = std.Io.Writer.Allocating.init(self.allocator);
         errdefer writer.deinit();
 
-        if (suffix) |value|
-            try writer.writer.print("https://api.themoviedb.org/3/company/{d}/{s}", .{ company_id, value })
-        else
-            try writer.writer.print("https://api.themoviedb.org/3/company/{d}", .{company_id});
+        try self.writeResourcePath(&writer.writer, "company", company_id, suffix);
 
         var list = writer.toArrayList();
         return try list.toOwnedSlice(self.allocator);
@@ -1493,10 +1622,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        if (suffix) |value|
-            try writer.writer.print("https://api.themoviedb.org/3/keyword/{d}/{s}", .{ keyword_id, value })
-        else
-            try writer.writer.print("https://api.themoviedb.org/3/keyword/{d}", .{keyword_id});
+        try self.writeResourcePath(&writer.writer, "keyword", keyword_id, suffix);
         try writeOptionalBool(&writer.writer, &has_query, "include_adult", options.include_adult);
         try writeOptionalU32(&writer.writer, &has_query, "page", options.page);
         try self.writeOptionalLanguage(&writer.writer, &has_query);
@@ -1664,7 +1790,7 @@ pub const Client = struct {
         var writer = std.Io.Writer.Allocating.init(self.allocator);
         errdefer writer.deinit();
 
-        try writer.writer.print("https://api.themoviedb.org/3/person/{d}/{s}", .{ person_id, suffix });
+        try self.writeResourcePath(&writer.writer, "person", person_id, suffix);
         if (self.config.language) |language| {
             try writer.writer.writeAll("?language=");
             try std.Uri.Component.formatQuery(.{ .raw = language }, &writer.writer);
@@ -1678,7 +1804,7 @@ pub const Client = struct {
         var writer = std.Io.Writer.Allocating.init(self.allocator);
         errdefer writer.deinit();
 
-        try writer.writer.print("https://api.themoviedb.org/3/person/{d}/{s}", .{ person_id, suffix });
+        try self.writeResourcePath(&writer.writer, "person", person_id, suffix);
         if (page) |value| {
             try writer.writer.print("?page={d}", .{value});
         }
@@ -1723,6 +1849,20 @@ pub const Client = struct {
     fn writeQuerySeparator(writer: *std.Io.Writer, has_query: *bool) !void {
         try writer.writeByte(if (has_query.*) '&' else '?');
         has_query.* = true;
+    }
+
+    fn writeResourcePath(
+        self: *Client,
+        writer: *std.Io.Writer,
+        resource: []const u8,
+        id: u64,
+        suffix: ?[]const u8,
+    ) !void {
+        _ = self;
+        if (suffix) |value|
+            try writer.print("https://api.themoviedb.org/3/{s}/{d}/{s}", .{ resource, id, value })
+        else
+            try writer.print("https://api.themoviedb.org/3/{s}/{d}", .{ resource, id });
     }
 
     fn writeQueryString(writer: *std.Io.Writer, has_query: *bool, name: []const u8, value: []const u8) !void {

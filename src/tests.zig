@@ -4,14 +4,31 @@ const Client = @import("client.zig").Client;
 const dotenv = @import("dotenv.zig");
 const types = @import("types.zig");
 
-test "search url encodes query and optional year" {
-    var client = Client.init(std.testing.allocator, .{
+const TestClientConfig = struct {
+    language: ?[]const u8 = null,
+    include_image_language: ?[]const u8 = "en-US,null",
+};
+
+fn initTestClient(config: TestClientConfig) Client {
+    return Client.init(std.testing.allocator, .{
         .token = "token",
-        .language = "it-IT",
+        .language = config.language,
+        .include_image_language = config.include_image_language,
     });
+}
+
+fn parseTestJson(comptime T: type, json: []const u8) !std.json.Parsed(T) {
+    return std.json.parseFromSlice(T, std.testing.allocator, json, .{
+        .ignore_unknown_fields = true,
+        .allocate = .alloc_always,
+    });
+}
+
+test "search url encodes query and optional year" {
+    var client = initTestClient(.{ .language = "it-IT" });
     defer client.deinit();
 
-    const url = try client.buildSearchUrl(.movie, "Spider Man", 2002);
+    const url = try client.testing().buildSearchUrl(.movie, "Spider Man", 2002);
     defer std.testing.allocator.free(url);
 
     try std.testing.expectEqualStrings(
@@ -21,13 +38,10 @@ test "search url encodes query and optional year" {
 }
 
 test "search movie options url supports page and include_adult" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildSearchMovieUrl("Alien", .{
+    const url = try client.testing().buildSearchMovieUrl("Alien", .{
         .year = 1979,
         .include_adult = false,
         .page = 3,
@@ -41,13 +55,10 @@ test "search movie options url supports page and include_adult" {
 }
 
 test "search person url encodes include_adult and page" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildSimpleSearchUrl("person", "Brad Pitt", .{
+    const url = try client.testing().buildSimpleSearchUrl("person", "Brad Pitt", .{
         .include_adult = false,
         .page = 2,
     });
@@ -60,13 +71,10 @@ test "search person url encodes include_adult and page" {
 }
 
 test "search collection url encodes page and language" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildSimpleSearchUrl("collection", "Star Wars", .{
+    const url = try client.testing().buildSimpleSearchUrl("collection", "Star Wars", .{
         .page = 2,
     });
     defer std.testing.allocator.free(url);
@@ -78,13 +86,10 @@ test "search collection url encodes page and language" {
 }
 
 test "search company url encodes include_adult and page" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildSimpleSearchUrl("company", "Pixar", .{
+    const url = try client.testing().buildSimpleSearchUrl("company", "Pixar", .{
         .include_adult = false,
         .page = 3,
     });
@@ -97,13 +102,10 @@ test "search company url encodes include_adult and page" {
 }
 
 test "search keyword url encodes include_adult and page" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildSimpleSearchUrl("keyword", "cyberpunk", .{
+    const url = try client.testing().buildSimpleSearchUrl("keyword", "cyberpunk", .{
         .include_adult = false,
         .page = 4,
     });
@@ -116,13 +118,10 @@ test "search keyword url encodes include_adult and page" {
 }
 
 test "search tv options url supports first_air_date_year" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildSearchTvUrl("Battlestar Galactica", .{
+    const url = try client.testing().buildSearchTvUrl("Battlestar Galactica", .{
         .year = 2004,
         .first_air_date_year = 2004,
         .page = 1,
@@ -136,13 +135,10 @@ test "search tv options url supports first_air_date_year" {
 }
 
 test "genre list url keeps optional language" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "it-IT",
-    });
+    var client = initTestClient(.{ .language = "it-IT" });
     defer client.deinit();
 
-    const url = try client.buildLanguageAwareUrl("https://api.themoviedb.org/3/genre/movie/list");
+    const url = try client.testing().buildLanguageAwareUrl("https://api.themoviedb.org/3/genre/movie/list");
     defer std.testing.allocator.free(url);
 
     try std.testing.expectEqualStrings(
@@ -152,13 +148,10 @@ test "genre list url keeps optional language" {
 }
 
 test "genre movies url encodes include_adult page and language" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildGenreMoviesUrl(28, .{
+    const url = try client.testing().buildGenreMoviesUrl(28, .{
         .include_adult = false,
         .page = 3,
     });
@@ -171,13 +164,10 @@ test "genre movies url encodes include_adult page and language" {
 }
 
 test "discover movie url supports typed params and extra params" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildDiscoverMovieUrl(.{
+    const url = try client.testing().buildDiscoverMovieUrl(.{
         .page = 2,
         .sort_by = "vote_average.desc",
         .with_genres = "28,12",
@@ -194,13 +184,10 @@ test "discover movie url supports typed params and extra params" {
 }
 
 test "discover tv url supports typed params" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildDiscoverTvUrl(.{
+    const url = try client.testing().buildDiscoverTvUrl(.{
         .page = 4,
         .sort_by = "popularity.desc",
         .with_genres = "10765",
@@ -216,13 +203,10 @@ test "discover tv url supports typed params" {
 }
 
 test "find url encodes external id and source" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildFindUrl("tt0133093", .imdb_id);
+    const url = try client.testing().buildFindUrl("tt0133093", .imdb_id);
     defer std.testing.allocator.free(url);
 
     try std.testing.expectEqualStrings(
@@ -232,13 +216,10 @@ test "find url encodes external id and source" {
 }
 
 test "trending url encodes media kind and time window" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "it-IT",
-    });
+    var client = initTestClient(.{ .language = "it-IT" });
     defer client.deinit();
 
-    const url = try client.buildTrendingUrl("movie", .week);
+    const url = try client.testing().buildTrendingUrl("movie", .week);
     defer std.testing.allocator.free(url);
 
     try std.testing.expectEqualStrings(
@@ -248,13 +229,10 @@ test "trending url encodes media kind and time window" {
 }
 
 test "movie list url encodes page region and language" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildMovieListUrl("now_playing", .{
+    const url = try client.testing().buildMovieListUrl("now_playing", .{
         .page = 2,
         .region = "IT",
     });
@@ -267,13 +245,10 @@ test "movie list url encodes page region and language" {
 }
 
 test "tv list url encodes page timezone and language" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildTvListUrl("airing_today", .{
+    const url = try client.testing().buildTvListUrl("airing_today", .{
         .page = 3,
         .timezone = "Europe/Rome",
     });
@@ -286,13 +261,10 @@ test "tv list url encodes page timezone and language" {
 }
 
 test "movie subresource url encodes page and language" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildMovieSubresourceUrl(603, "similar", 2, null);
+    const url = try client.testing().buildMovieSubresourceUrl(603, "similar", 2, null);
     defer std.testing.allocator.free(url);
 
     try std.testing.expectEqualStrings(
@@ -302,14 +274,13 @@ test "movie subresource url encodes page and language" {
 }
 
 test "movie images subresource url encodes include_image_language" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
+    var client = initTestClient(.{
         .language = "en-US",
         .include_image_language = "en-US,null",
     });
     defer client.deinit();
 
-    const url = try client.buildMovieSubresourceUrl(603, "images", null, "en-US,null");
+    const url = try client.testing().buildMovieSubresourceUrl(603, "images", null, "en-US,null");
     defer std.testing.allocator.free(url);
 
     try std.testing.expectEqualStrings(
@@ -319,13 +290,10 @@ test "movie images subresource url encodes include_image_language" {
 }
 
 test "tv videos subresource url encodes include_video_language" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildTvSubresourceUrl(1399, "videos", null, null, "en-US,null");
+    const url = try client.testing().buildTvSubresourceUrl(1399, "videos", null, null, "en-US,null");
     defer std.testing.allocator.free(url);
 
     try std.testing.expectEqualStrings(
@@ -335,13 +303,10 @@ test "tv videos subresource url encodes include_video_language" {
 }
 
 test "watch providers url encodes watch_region and language" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildWatchProvidersUrl("movie", "IT");
+    const url = try client.testing().buildWatchProvidersUrl("movie", "IT");
     defer std.testing.allocator.free(url);
 
     try std.testing.expectEqualStrings(
@@ -351,13 +316,10 @@ test "watch providers url encodes watch_region and language" {
 }
 
 test "watch provider regions url keeps language" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildWatchProviderRegionsUrl();
+    const url = try client.testing().buildWatchProviderRegionsUrl();
     defer std.testing.allocator.free(url);
 
     try std.testing.expectEqualStrings(
@@ -367,13 +329,10 @@ test "watch provider regions url keeps language" {
 }
 
 test "people popular url encodes page and language" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildPeoplePopularUrl(.{ .page = 4 });
+    const url = try client.testing().buildPeoplePopularUrl(.{ .page = 4 });
     defer std.testing.allocator.free(url);
 
     try std.testing.expectEqualStrings(
@@ -383,14 +342,13 @@ test "people popular url encodes page and language" {
 }
 
 test "collection images url encodes include_image_language and language" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
+    var client = initTestClient(.{
         .language = "en-US",
         .include_image_language = "en-US,null",
     });
     defer client.deinit();
 
-    const url = try client.buildCollectionUrl(10, "images", "en-US,null");
+    const url = try client.testing().buildCollectionUrl(10, "images", "en-US,null");
     defer std.testing.allocator.free(url);
 
     try std.testing.expectEqualStrings(
@@ -400,13 +358,10 @@ test "collection images url encodes include_image_language and language" {
 }
 
 test "keyword movies url encodes include_adult page and language" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildKeywordUrl(42, "movies", .{
+    const url = try client.testing().buildKeywordUrl(42, "movies", .{
         .include_adult = false,
         .page = 3,
     });
@@ -419,12 +374,10 @@ test "keyword movies url encodes include_adult page and language" {
 }
 
 test "changes url encodes date range and page" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-    });
+    var client = initTestClient(.{});
     defer client.deinit();
 
-    const url = try client.buildChangesUrl("movie", .{
+    const url = try client.testing().buildChangesUrl("movie", .{
         .start_date = "2025-01-01",
         .end_date = "2025-01-31",
         .page = 3,
@@ -438,13 +391,10 @@ test "changes url encodes date range and page" {
 }
 
 test "person details url supports append_to_response" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
-    const url = try client.buildPersonDetailsUrl(287, &.{ "external_ids", "images" });
+    const url = try client.testing().buildPersonDetailsUrl(287, &.{ "external_ids", "images" });
     defer std.testing.allocator.free(url);
 
     try std.testing.expectEqualStrings(
@@ -464,7 +414,7 @@ test "genre enrichment fills missing names from canonical genre list" {
         .{ .id = 12, .name = "Adventure" },
     };
 
-    Client.applyGenreNames(&target, &canonical);
+    Client.Testing.applyGenreNames(&target, &canonical);
 
     try std.testing.expectEqualStrings("Action", target[0].name);
     try std.testing.expectEqualStrings("Adventure", target[1].name);
@@ -472,13 +422,11 @@ test "genre enrichment fills missing names from canonical genre list" {
 }
 
 test "details url encodes arbitrary appended namespace paths" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-    });
+    var client = initTestClient(.{});
     defer client.deinit();
 
     const append_values = [_][]const u8{ "images", "videos", "season/3" };
-    const url = try client.buildDetailsUrl(.series, 1399, &append_values, "en-US,null");
+    const url = try client.testing().buildDetailsUrl(.series, 1399, &append_values, "en-US,null");
     defer std.testing.allocator.free(url);
 
     try std.testing.expectEqualStrings(
@@ -488,10 +436,7 @@ test "details url encodes arbitrary appended namespace paths" {
 }
 
 test "details request supports chain append builder" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "it-IT",
-    });
+    var client = initTestClient(.{ .language = "it-IT" });
     defer client.deinit();
 
     var request = client.movie().detailsRequest(11);
@@ -510,9 +455,7 @@ test "details request supports chain append builder" {
 }
 
 test "details request supports append array" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-    });
+    var client = initTestClient(.{});
     defer client.deinit();
 
     var request = client.movie().detailsRequest(11);
@@ -532,10 +475,7 @@ test "details request supports append array" {
 }
 
 test "tv details request supports arbitrary appended namespace paths" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
     var request = client.tv().detailsRequest(226285);
@@ -601,13 +541,11 @@ test "configuration images validates supported sizes" {
 }
 
 test "tv season details url supports append_to_response" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-    });
+    var client = initTestClient(.{});
     defer client.deinit();
 
     const append_values = [_][]const u8{ "images", "videos" };
-    const url = try client.buildTvSeasonDetailsUrl(1399, 1, &append_values, "en-US,null");
+    const url = try client.testing().buildTvSeasonDetailsUrl(1399, 1, &append_values, "en-US,null");
     defer std.testing.allocator.free(url);
 
     try std.testing.expectEqualStrings(
@@ -617,14 +555,11 @@ test "tv season details url supports append_to_response" {
 }
 
 test "tv episode details url supports append_to_response" {
-    var client = Client.init(std.testing.allocator, .{
-        .token = "token",
-        .language = "en-US",
-    });
+    var client = initTestClient(.{ .language = "en-US" });
     defer client.deinit();
 
     const append_values = [_][]const u8{ "images", "videos" };
-    const url = try client.buildTvEpisodeDetailsUrl(1399, 1, 1, &append_values, "en-US,null");
+    const url = try client.testing().buildTvEpisodeDetailsUrl(1399, 1, 1, &append_values, "en-US,null");
     defer std.testing.allocator.free(url);
 
     try std.testing.expectEqualStrings(
@@ -643,10 +578,7 @@ test "search response parsing ignores unknown fields" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.SearchResponse, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.SearchResponse, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(usize, 1), parsed.value.results.len);
@@ -664,10 +596,7 @@ test "find response parsing keeps per-media result buckets" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.FindResponse, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.FindResponse, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(usize, 1), parsed.value.movie_results.len);
@@ -687,11 +616,11 @@ test "find response helper returns first id for each result kind" {
         .tv_season_results = &.{.{ .id = 7 }},
     };
 
-    try std.testing.expectEqual(@as(?u64, 603), Client.firstFindResultId(response, .movie));
-    try std.testing.expectEqual(@as(?u64, 287), Client.firstFindResultId(response, .person));
-    try std.testing.expectEqual(@as(?u64, 1399), Client.firstFindResultId(response, .tv));
-    try std.testing.expectEqual(@as(?u64, 42), Client.firstFindResultId(response, .tv_episode));
-    try std.testing.expectEqual(@as(?u64, 7), Client.firstFindResultId(response, .tv_season));
+    try std.testing.expectEqual(@as(?u64, 603), Client.Testing.firstFindResultId(response, .movie));
+    try std.testing.expectEqual(@as(?u64, 287), Client.Testing.firstFindResultId(response, .person));
+    try std.testing.expectEqual(@as(?u64, 1399), Client.Testing.firstFindResultId(response, .tv));
+    try std.testing.expectEqual(@as(?u64, 42), Client.Testing.firstFindResultId(response, .tv_episode));
+    try std.testing.expectEqual(@as(?u64, 7), Client.Testing.firstFindResultId(response, .tv_season));
 }
 
 test "trending response parsing keeps mixed result fields" {
@@ -707,10 +636,7 @@ test "trending response parsing keeps mixed result fields" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.SearchResponse, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.SearchResponse, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(usize, 2), parsed.value.results.len);
@@ -733,10 +659,7 @@ test "movie list response parsing keeps optional dates" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.MovieListResponse, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.MovieListResponse, json);
     defer parsed.deinit();
 
     try std.testing.expect(parsed.value.dates != null);
@@ -758,10 +681,7 @@ test "credits response parsing keeps cast and crew" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.CreditsResponse, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.CreditsResponse, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(u64, 603), parsed.value.id);
@@ -781,10 +701,7 @@ test "videos response parsing keeps entries" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.VideosResponse, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.VideosResponse, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(u64, 603), parsed.value.id);
@@ -806,10 +723,7 @@ test "media images parsing keeps image buckets" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.MediaImages, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.MediaImages, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(u64, 603), parsed.value.id);
@@ -832,10 +746,7 @@ test "watch provider list response parsing keeps entries" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.WatchProviderListResponse, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.WatchProviderListResponse, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(usize, 1), parsed.value.results.len);
@@ -852,10 +763,7 @@ test "watch provider regions response parsing keeps entries" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.WatchProviderRegionsResponse, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.WatchProviderRegionsResponse, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(usize, 1), parsed.value.results.len);
@@ -870,10 +778,7 @@ test "configuration countries parsing keeps entries" {
         \\]
     ;
 
-    var parsed = try std.json.parseFromSlice(types.ConfigurationCountries, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.ConfigurationCountries, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(usize, 1), parsed.value.len);
@@ -891,10 +796,7 @@ test "collection details parsing keeps parts" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.CollectionDetails, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.CollectionDetails, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(u64, 10), parsed.value.id);
@@ -912,10 +814,7 @@ test "company details parsing keeps fields" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.CompanyDetails, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.CompanyDetails, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(u64, 1), parsed.value.id);
@@ -935,10 +834,7 @@ test "keyword movies response parsing keeps items" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.KeywordMoviesResponse, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.KeywordMoviesResponse, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(u64, 42), parsed.value.id);
@@ -965,10 +861,7 @@ test "movie details parsing keeps nested tmdb fields" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.MovieDetails, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.MovieDetails, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(u64, 603), parsed.value.id);
@@ -997,10 +890,7 @@ test "tv details parsing keeps tv-specific fields" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.TvDetails, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.TvDetails, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(u64, 1399), parsed.value.id);
@@ -1051,10 +941,7 @@ test "tv season details parsing keeps episodes" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.TvSeasonDetails, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.TvSeasonDetails, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(u64, 3624), parsed.value.id);
@@ -1088,10 +975,7 @@ test "tv episode details parsing keeps cast and crew" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.TvEpisodeDetails, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.TvEpisodeDetails, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(u64, 63056), parsed.value.id);
@@ -1118,10 +1002,7 @@ test "configuration details parsing keeps image sizes" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.ConfigurationDetails, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.ConfigurationDetails, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(usize, 4), parsed.value.images.backdrop_sizes.len);
@@ -1141,10 +1022,7 @@ test "network details parsing keeps fields" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.NetworkDetails, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.NetworkDetails, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(u64, 49), parsed.value.id);
@@ -1171,15 +1049,42 @@ test "review details parsing keeps author details" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.ReviewDetails, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.ReviewDetails, json);
     defer parsed.deinit();
 
     try std.testing.expectEqualStrings("alice", parsed.value.author.?);
     try std.testing.expectEqual(@as(u64, 550), parsed.value.media_id.?);
     try std.testing.expectEqual(@as(f32, 8), parsed.value.author_details.?.rating.?);
+}
+
+test "reviews response parsing keeps entries" {
+    const json =
+        \\{
+        \\  "page": 1,
+        \\  "results": [
+        \\    {
+        \\      "author": "alice",
+        \\      "author_details": {
+        \\        "username": "alice",
+        \\        "rating": 8
+        \\      },
+        \\      "content": "Review body",
+        \\      "id": "123",
+        \\      "url": "https://www.themoviedb.org/review/123"
+        \\    }
+        \\  ],
+        \\  "total_pages": 2,
+        \\  "total_results": 20
+        \\}
+    ;
+
+    var parsed = try parseTestJson(types.ReviewsResponse, json);
+    defer parsed.deinit();
+
+    try std.testing.expectEqual(@as(u32, 1), parsed.value.page);
+    try std.testing.expectEqual(@as(usize, 1), parsed.value.results.len);
+    try std.testing.expectEqualStrings("alice", parsed.value.results[0].author.?);
+    try std.testing.expectEqual(@as(f32, 8), parsed.value.results[0].author_details.?.rating.?);
 }
 
 test "certification list parsing supports dynamic country keys" {
@@ -1196,10 +1101,7 @@ test "certification list parsing supports dynamic country keys" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.CertificationList, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.CertificationList, json);
     defer parsed.deinit();
 
     const us = parsed.value.byCountry("US").?;
@@ -1223,10 +1125,7 @@ test "changes list parsing keeps page results" {
         \\}
     ;
 
-    var parsed = try std.json.parseFromSlice(types.ChangesList, std.testing.allocator, json, .{
-        .ignore_unknown_fields = true,
-        .allocate = .alloc_always,
-    });
+    var parsed = try parseTestJson(types.ChangesList, json);
     defer parsed.deinit();
 
     try std.testing.expectEqual(@as(u32, 1), parsed.value.page);
@@ -1509,10 +1408,10 @@ test "integration fetches tmdb review details" {
     });
     defer client.deinit();
 
-    const body = try client.request("https://api.themoviedb.org/3/movie/550/reviews?language=en-US&page=1");
+    const body = try client.testing().request("https://api.themoviedb.org/3/movie/550/reviews?language=en-US&page=1");
     defer std.testing.allocator.free(body);
 
-    var list = try client.parseJson(ReviewList, body);
+    var list = try client.testing().parseJson(ReviewList, body);
     defer list.deinit();
 
     if (list.value.results.len == 0) return error.SkipZigTest;
