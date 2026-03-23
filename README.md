@@ -86,11 +86,17 @@ pub fn main() !void {
 var request = client.movie().detailsRequest(603);
 defer request.deinit();
 
-_ = try request.appendToResponse("images");
-_ = try request.appendToResponse("videos");
+_ = try request.append(.images);
+_ = try request.append(.videos);
 
 var parsed = try request.send();
 defer parsed.deinit();
+```
+
+Use `appendRaw(...)` only for dynamic or non-enum values, for example:
+
+```zig
+_ = try request.appendRaw("season/3");
 ```
 
 The same builder pattern is available for:
@@ -109,9 +115,9 @@ Run the full test suite:
 zig build test
 ```
 
-Some integration tests are enabled only when a local `.env` file contains:
+Some integration tests are enabled only when `TMDB_READ_ACCESS_TOKEN` is available in the environment:
 
-```env
+```sh
 TMDB_READ_ACCESS_TOKEN=...
 ```
 
@@ -122,6 +128,7 @@ TMDB_READ_ACCESS_TOKEN=...
 - typed responses for the main read-only endpoints
 - grouped endpoint families instead of a flat method list
 - backward-compatible exports in `src/root.zig`
+- static metadata such as configuration, certifications, and genre lists is cached in-memory on the client; if those endpoints look temporarily out of sync with TMDb, cached static data is the likely reason
 
 ## Non-Goals For Now
 
