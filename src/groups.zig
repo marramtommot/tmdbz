@@ -1,0 +1,20 @@
+pub const Certifications = @import("certifications.zig");
+pub const Changes = @import("changes.zig");
+pub const Collections = @import("collections.zig");
+pub const Companies = @import("companies.zig");
+pub const Configuration = @import("configuration.zig");
+pub const Discover = @import("discover.zig");
+pub const Find = @import("find.zig");
+pub const Genres = @import("genre.zig");
+pub const Keywords = @import("keywords.zig");
+pub const Movie = @import("movie.zig");
+pub const Networks = @import("networks.zig");
+pub const People = @import("people.zig");
+pub const Reviews = @import("reviews.zig");
+pub const Search = @import("search.zig");
+pub const Trending = @import("trending.zig");
+pub const Tv = @import("tv.zig");
+pub const TvEpisodes = @import("tv_episodes.zig");
+pub const TvSeasons = @import("tv_seasons.zig");
+pub const WatchProviders = @import("watch_providers.zig");
+
