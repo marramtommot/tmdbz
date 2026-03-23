@@ -4,6 +4,26 @@ const dotenv = @import("dotenv.zig");
 const groups = @import("groups.zig");
 const types = @import("types.zig");
 
+const api_base_url = "https://api.themoviedb.org/3";
+const auth_bearer_prefix = "Bearer ";
+const accept_header_name = "accept";
+const accept_header_value = "application/json";
+const authorization_header_name = "Authorization";
+
+const path_configuration = api_base_url ++ "/configuration";
+const path_configuration_countries = path_configuration ++ "/countries";
+const path_genre_movie_list = api_base_url ++ "/genre/movie/list";
+const path_genre_tv_list = api_base_url ++ "/genre/tv/list";
+const path_person_latest = api_base_url ++ "/person/latest";
+const path_watch_provider_regions = api_base_url ++ "/watch/providers/regions";
+
+const resource_collection = "collection";
+const resource_company = "company";
+const resource_keyword = "keyword";
+const resource_network = "network";
+const resource_person = "person";
+const resource_review = "review";
+
 pub const Config = struct {
     token: []const u8,
     movie_search_base_url: []const u8 = "https://api.themoviedb.org/3/search/movie?",
@@ -779,10 +799,7 @@ pub const Client = struct {
     }
 
     pub fn fetchConfigurationCountries(self: *Client) !std.json.Parsed(types.ConfigurationCountries) {
-        return try self.fetchLanguageAwareJson(
-            types.ConfigurationCountries,
-            "https://api.themoviedb.org/3/configuration/countries",
-        );
+        return try self.fetchLanguageAwareJson(types.ConfigurationCountries, path_configuration_countries);
     }
 
     pub fn fetchConfigurationJobs(self: *Client) !std.json.Parsed(types.ConfigurationJobs) {
@@ -964,15 +981,11 @@ pub const Client = struct {
     }
 
     pub fn fetchConfiguration(self: *Client) !std.json.Parsed(types.ConfigurationDetails) {
-        return try self.fetchCachedJson(
-            types.ConfigurationDetails,
-            &self.static_cache.configuration,
-            "https://api.themoviedb.org/3/configuration",
-        );
+        return try self.fetchCachedJson(types.ConfigurationDetails, &self.static_cache.configuration, path_configuration);
     }
 
     pub fn fetchLatestPerson(self: *Client) !std.json.Parsed(types.PersonDetails) {
-        const body = try self.request("https://api.themoviedb.org/3/person/latest");
+        const body = try self.request(path_person_latest);
         defer self.allocator.free(body);
 
         return try self.parseJson(types.PersonDetails, body);
@@ -1010,8 +1023,8 @@ pub const Client = struct {
     pub fn fetchReviewDetails(self: *Client, review_id: []const u8) !std.json.Parsed(types.ReviewDetails) {
         const url = try std.fmt.allocPrint(
             self.allocator,
-            "https://api.themoviedb.org/3/review/{s}",
-            .{review_id},
+            "{s}/{s}/{s}",
+            .{ api_base_url, resource_review, review_id },
         );
         return try self.fetchJsonUrl(types.ReviewDetails, url);
     }
@@ -1020,7 +1033,7 @@ pub const Client = struct {
         return try self.fetchCachedJson(
             types.CertificationList,
             &self.static_cache.movie_certifications,
-            "https://api.themoviedb.org/3/certification/movie/list",
+            api_base_url ++ "/certification/movie/list",
         );
     }
 
@@ -1028,7 +1041,7 @@ pub const Client = struct {
         return try self.fetchCachedJson(
             types.CertificationList,
             &self.static_cache.tv_certifications,
-            "https://api.themoviedb.org/3/certification/tv/list",
+            api_base_url ++ "/certification/tv/list",
         );
     }
 
@@ -1045,13 +1058,13 @@ pub const Client = struct {
     }
 
     pub fn fetchMovieGenres(self: *Client) !std.json.Parsed(types.GenreList) {
-        const url = try self.buildLanguageAwareUrl("https://api.themoviedb.org/3/genre/movie/list");
+        const url = try self.buildLanguageAwareUrl(path_genre_movie_list);
         defer self.allocator.free(url);
         return try self.fetchCachedJson(types.GenreList, &self.static_cache.movie_genres, url);
     }
 
     pub fn fetchTvGenres(self: *Client) !std.json.Parsed(types.GenreList) {
-        const url = try self.buildLanguageAwareUrl("https://api.themoviedb.org/3/genre/tv/list");
+        const url = try self.buildLanguageAwareUrl(path_genre_tv_list);
         defer self.allocator.free(url);
         return try self.fetchCachedJson(types.GenreList, &self.static_cache.tv_genres, url);
     }
@@ -1186,8 +1199,8 @@ pub const Client = struct {
     fn fetchConfigurationJson(self: *Client, comptime T: type, suffix: []const u8) !std.json.Parsed(T) {
         const url = try std.fmt.allocPrint(
             self.allocator,
-            "https://api.themoviedb.org/3/configuration/{s}",
-            .{suffix},
+            "{s}/{s}",
+            .{ path_configuration, suffix },
         );
         return try self.fetchJsonUrl(T, url);
     }
@@ -1200,8 +1213,8 @@ pub const Client = struct {
     pub fn fetchPersonJson(self: *Client, comptime T: type, person_id: u64, suffix: []const u8) !std.json.Parsed(T) {
         const url = try std.fmt.allocPrint(
             self.allocator,
-            "https://api.themoviedb.org/3/person/{d}/{s}",
-            .{ person_id, suffix },
+            "{s}/{s}/{d}/{s}",
+            .{ api_base_url, resource_person, person_id, suffix },
         );
         return try self.fetchJsonUrl(T, url);
     }
@@ -1226,11 +1239,11 @@ pub const Client = struct {
         const url = if (suffix) |value|
             try std.fmt.allocPrint(
                 self.allocator,
-                "https://api.themoviedb.org/3/network/{d}/{s}",
-                .{ network_id, value },
+                "{s}/{s}/{d}/{s}",
+                .{ api_base_url, resource_network, network_id, value },
             )
         else
-            try std.fmt.allocPrint(self.allocator, "https://api.themoviedb.org/3/network/{d}", .{network_id});
+            try std.fmt.allocPrint(self.allocator, "{s}/{s}/{d}", .{ api_base_url, resource_network, network_id });
 
         return try self.fetchJsonUrl(T, url);
     }
@@ -1248,14 +1261,14 @@ pub const Client = struct {
 
         const authorization = try std.fmt.allocPrint(
             self.allocator,
-            "Bearer {s}",
+            auth_bearer_prefix ++ "{s}",
             .{self.config.token},
         );
         defer self.allocator.free(authorization);
 
         const headers = [_]std.http.Header{
-            .{ .name = "accept", .value = "application/json" },
-            .{ .name = "Authorization", .value = authorization },
+            .{ .name = accept_header_name, .value = accept_header_value },
+            .{ .name = authorization_header_name, .value = authorization },
         };
 
         const result = try self.http_client.fetch(.{
@@ -1292,7 +1305,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try writer.writer.writeAll("https://api.themoviedb.org/3/search/movie");
+        try writer.writer.writeAll(api_base_url ++ "/search/movie");
         try writeQueryString(&writer.writer, &has_query, "query", query);
         try writeOptionalBool(&writer.writer, &has_query, "include_adult", options.include_adult);
         try writeOptionalU32(&writer.writer, &has_query, "page", options.page);
@@ -1312,7 +1325,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try writer.writer.writeAll("https://api.themoviedb.org/3/search/tv");
+        try writer.writer.writeAll(api_base_url ++ "/search/tv");
         try writeQueryString(&writer.writer, &has_query, "query", query);
         try writeOptionalBool(&writer.writer, &has_query, "include_adult", options.include_adult);
         try writeOptionalU32(&writer.writer, &has_query, "page", options.page);
@@ -1334,7 +1347,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try writer.writer.print("https://api.themoviedb.org/3/search/{s}", .{kind});
+        try writer.writer.print("{s}/search/{s}", .{ api_base_url, kind });
         try writeQueryString(&writer.writer, &has_query, "query", query);
         try writeOptionalBool(&writer.writer, &has_query, "include_adult", options.include_adult);
         try writeOptionalU32(&writer.writer, &has_query, "page", options.page);
@@ -1349,7 +1362,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try writer.writer.writeAll("https://api.themoviedb.org/3/discover/movie");
+        try writer.writer.writeAll(api_base_url ++ "/discover/movie");
         try writeOptionalString(&writer.writer, &has_query, "certification", query.certification);
         try writeOptionalString(&writer.writer, &has_query, "certification_country", query.certification_country);
         try writeOptionalString(&writer.writer, &has_query, "certification.gte", query.certification_gte);
@@ -1399,7 +1412,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try writer.writer.writeAll("https://api.themoviedb.org/3/discover/tv");
+        try writer.writer.writeAll(api_base_url ++ "/discover/tv");
         try writeOptionalString(&writer.writer, &has_query, "air_date.gte", query.air_date_gte);
         try writeOptionalString(&writer.writer, &has_query, "air_date.lte", query.air_date_lte);
         try writeOptionalU32(&writer.writer, &has_query, "first_air_date_year", query.first_air_date_year);
@@ -1448,7 +1461,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try writer.writer.writeAll("https://api.themoviedb.org/3/find/");
+        try writer.writer.writeAll(api_base_url ++ "/find/");
         try writer.writer.writeAll(external_id);
         try writeQueryString(&writer.writer, &has_query, "external_source", external_source.value());
         try self.writeOptionalLanguage(&writer.writer, &has_query);
@@ -1467,8 +1480,8 @@ pub const Client = struct {
 
         var has_query = false;
         try writer.writer.print(
-            "https://api.themoviedb.org/3/trending/{s}/{s}",
-            .{ media_kind, time_window.value() },
+            "{s}/trending/{s}/{s}",
+            .{ api_base_url, media_kind, time_window.value() },
         );
         try self.writeOptionalLanguage(&writer.writer, &has_query);
 
@@ -1481,7 +1494,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try writer.writer.print("https://api.themoviedb.org/3/movie/{s}", .{list_kind});
+        try writer.writer.print("{s}/movie/{s}", .{ api_base_url, list_kind });
         try writeOptionalU32(&writer.writer, &has_query, "page", query.page);
         try writeOptionalString(&writer.writer, &has_query, "region", query.region);
         try self.writeOptionalLanguage(&writer.writer, &has_query);
@@ -1495,7 +1508,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try writer.writer.print("https://api.themoviedb.org/3/tv/{s}", .{list_kind});
+        try writer.writer.print("{s}/tv/{s}", .{ api_base_url, list_kind });
         try writeOptionalU32(&writer.writer, &has_query, "page", query.page);
         try writeOptionalString(&writer.writer, &has_query, "timezone", query.timezone);
         try self.writeOptionalLanguage(&writer.writer, &has_query);
@@ -1515,7 +1528,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try writer.writer.print("https://api.themoviedb.org/3/movie/{d}/{s}", .{ movie_id, suffix });
+        try writer.writer.print("{s}/movie/{d}/{s}", .{ api_base_url, movie_id, suffix });
         try writeOptionalU32(&writer.writer, &has_query, "page", page);
         try writeOptionalString(&writer.writer, &has_query, "include_image_language", include_image_language);
         try self.writeOptionalLanguage(&writer.writer, &has_query);
@@ -1536,7 +1549,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try writer.writer.print("https://api.themoviedb.org/3/tv/{d}/{s}", .{ series_id, suffix });
+        try writer.writer.print("{s}/tv/{d}/{s}", .{ api_base_url, series_id, suffix });
         try writeOptionalU32(&writer.writer, &has_query, "page", page);
         try writeOptionalString(&writer.writer, &has_query, "include_image_language", include_image_language);
         try writeOptionalString(&writer.writer, &has_query, "include_video_language", include_video_language);
@@ -1551,7 +1564,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try writer.writer.print("https://api.themoviedb.org/3/watch/providers/{s}", .{media_kind});
+        try writer.writer.print("{s}/watch/providers/{s}", .{ api_base_url, media_kind });
         try writeOptionalString(&writer.writer, &has_query, "watch_region", watch_region);
         try self.writeOptionalLanguage(&writer.writer, &has_query);
 
@@ -1564,7 +1577,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try writer.writer.writeAll("https://api.themoviedb.org/3/watch/providers/regions");
+        try writer.writer.writeAll(path_watch_provider_regions);
         try self.writeOptionalLanguage(&writer.writer, &has_query);
 
         var list = writer.toArrayList();
@@ -1576,7 +1589,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try writer.writer.writeAll("https://api.themoviedb.org/3/person/popular");
+        try writer.writer.writeAll(api_base_url ++ "/person/popular");
         try writeOptionalU32(&writer.writer, &has_query, "page", options.page);
         try self.writeOptionalLanguage(&writer.writer, &has_query);
 
@@ -1594,7 +1607,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try self.writeResourcePath(&writer.writer, "collection", collection_id, suffix);
+        try self.writeResourcePath(&writer.writer, resource_collection, collection_id, suffix);
         try writeOptionalString(&writer.writer, &has_query, "include_image_language", include_image_language);
         try self.writeOptionalLanguage(&writer.writer, &has_query);
 
@@ -1606,7 +1619,7 @@ pub const Client = struct {
         var writer = std.Io.Writer.Allocating.init(self.allocator);
         errdefer writer.deinit();
 
-        try self.writeResourcePath(&writer.writer, "company", company_id, suffix);
+        try self.writeResourcePath(&writer.writer, resource_company, company_id, suffix);
 
         var list = writer.toArrayList();
         return try list.toOwnedSlice(self.allocator);
@@ -1622,7 +1635,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try self.writeResourcePath(&writer.writer, "keyword", keyword_id, suffix);
+        try self.writeResourcePath(&writer.writer, resource_keyword, keyword_id, suffix);
         try writeOptionalBool(&writer.writer, &has_query, "include_adult", options.include_adult);
         try writeOptionalU32(&writer.writer, &has_query, "page", options.page);
         try self.writeOptionalLanguage(&writer.writer, &has_query);
@@ -1640,7 +1653,7 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         var has_query = false;
-        try writer.writer.print("https://api.themoviedb.org/3/genre/{d}/movies", .{genre_id});
+        try writer.writer.print("{s}/genre/{d}/movies", .{ api_base_url, genre_id });
         try writeOptionalBool(&writer.writer, &has_query, "include_adult", options.include_adult);
         try writeOptionalU32(&writer.writer, &has_query, "page", options.page);
         try self.writeOptionalLanguage(&writer.writer, &has_query);
@@ -1660,8 +1673,8 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         try writer.writer.print(
-            "https://api.themoviedb.org/3/{s}/{d}",
-            .{ media_type.detailsPath(), id },
+            "{s}/{s}/{d}",
+            .{ api_base_url, media_type.detailsPath(), id },
         );
 
         try self.writeDetailsQuery(&writer.writer, append_values, include_image_language);
@@ -1681,8 +1694,8 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         try writer.writer.print(
-            "https://api.themoviedb.org/3/tv/{d}/season/{d}",
-            .{ series_id, season_number },
+            "{s}/tv/{d}/season/{d}",
+            .{ api_base_url, series_id, season_number },
         );
         try self.writeDetailsQuery(&writer.writer, append_values, include_image_language);
 
@@ -1702,8 +1715,8 @@ pub const Client = struct {
         errdefer writer.deinit();
 
         try writer.writer.print(
-            "https://api.themoviedb.org/3/tv/{d}/season/{d}/episode/{d}",
-            .{ series_id, season_number, episode_number },
+            "{s}/tv/{d}/season/{d}/episode/{d}",
+            .{ api_base_url, series_id, season_number, episode_number },
         );
         try self.writeDetailsQuery(&writer.writer, append_values, include_image_language);
 
@@ -1733,7 +1746,7 @@ pub const Client = struct {
         var writer = std.Io.Writer.Allocating.init(self.allocator);
         errdefer writer.deinit();
 
-        try writer.writer.print("https://api.themoviedb.org/3/{s}/changes", .{scope});
+        try writer.writer.print("{s}/{s}/changes", .{ api_base_url, scope });
 
         var wrote_query = false;
 
@@ -1765,7 +1778,7 @@ pub const Client = struct {
         var writer = std.Io.Writer.Allocating.init(self.allocator);
         errdefer writer.deinit();
 
-        try writer.writer.print("https://api.themoviedb.org/3/person/{d}", .{person_id});
+        try writer.writer.print("{s}/{s}/{d}", .{ api_base_url, resource_person, person_id });
 
         var wrote_query = false;
         if (append_values.len > 0) {
@@ -1790,7 +1803,7 @@ pub const Client = struct {
         var writer = std.Io.Writer.Allocating.init(self.allocator);
         errdefer writer.deinit();
 
-        try self.writeResourcePath(&writer.writer, "person", person_id, suffix);
+        try self.writeResourcePath(&writer.writer, resource_person, person_id, suffix);
         if (self.config.language) |language| {
             try writer.writer.writeAll("?language=");
             try std.Uri.Component.formatQuery(.{ .raw = language }, &writer.writer);
@@ -1804,7 +1817,7 @@ pub const Client = struct {
         var writer = std.Io.Writer.Allocating.init(self.allocator);
         errdefer writer.deinit();
 
-        try self.writeResourcePath(&writer.writer, "person", person_id, suffix);
+        try self.writeResourcePath(&writer.writer, resource_person, person_id, suffix);
         if (page) |value| {
             try writer.writer.print("?page={d}", .{value});
         }
@@ -1817,7 +1830,7 @@ pub const Client = struct {
         var writer = std.Io.Writer.Allocating.init(self.allocator);
         errdefer writer.deinit();
 
-        try writer.writer.print("https://api.themoviedb.org/3/person/{d}/changes", .{person_id});
+        try writer.writer.print("{s}/{s}/{d}/changes", .{ api_base_url, resource_person, person_id });
 
         var wrote_query = false;
         if (query.start_date) |start_date| {
@@ -1860,9 +1873,9 @@ pub const Client = struct {
     ) !void {
         _ = self;
         if (suffix) |value|
-            try writer.print("https://api.themoviedb.org/3/{s}/{d}/{s}", .{ resource, id, value })
+            try writer.print("{s}/{s}/{d}/{s}", .{ api_base_url, resource, id, value })
         else
-            try writer.print("https://api.themoviedb.org/3/{s}/{d}", .{ resource, id });
+            try writer.print("{s}/{s}/{d}", .{ api_base_url, resource, id });
     }
 
     fn writeQueryString(writer: *std.Io.Writer, has_query: *bool, name: []const u8, value: []const u8) !void {
