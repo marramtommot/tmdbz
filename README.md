@@ -41,17 +41,6 @@ Fetch the package:
 zig fetch --save git+https://github.com/marramtommot/tmdbz#master
 ```
 
-This adds a `tmdbz` entry to `build.zig.zon`. It will look like:
-
-```zig
-.dependencies = .{
-    .tmdbz = .{
-        .url = "git+https://github.com/marramtommot/tmdbz",
-        .hash = "...",
-    },
-},
-```
-
 Then wire the module in `build.zig` and import it as `tmdbz`:
 
 ```zig
