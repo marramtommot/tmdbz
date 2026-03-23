@@ -38,7 +38,7 @@ Implemented today:
 Fetch the package:
 
 ```sh
-zig fetch --save git+https://github.com/marramtommot/tmdbz
+zig fetch --save git+https://github.com/marramtommot/tmdbz#master
 ```
 
 This adds a `tmdbz` entry to `build.zig.zon`. It will look like:
