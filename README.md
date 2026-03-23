@@ -28,8 +28,6 @@ Implemented today:
 - configuration, certifications, changes, networks, reviews
 - `append_to_response` builders for the detail endpoints that officially support it
 
-The detailed implementation map lives in [docs/tmdbz-implementation-roadmap.md](/home/pi/tmdbz/docs/tmdbz-implementation-roadmap.md).
-
 ## Requirements
 
 - Zig `0.15.2`
